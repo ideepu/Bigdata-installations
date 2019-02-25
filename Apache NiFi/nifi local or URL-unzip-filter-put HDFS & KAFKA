@@ -1,0 +1,45 @@
+1.Start the HDFS & nifi web interface by running http://localhost:8080/nifi
+
+2.Drag a processor and search for the GetFile (or GetHTTP if you want to fetch from a URL) and add it.
+
+3.Configure the processor in properties tab and give the input directory location from where you want to upload the file to HDFS ( you can provide regular expression to filter the files in File Filter property & keep source file = true ). And, if you want to pull the data from a URL then right-clicking the GetHTTP processor and clicking the "Configure" menu option provides us a dialog with a "Properties" tab. Here, we can enter the URL to fetch the data from (http://files.grouplens.org/datasets/movielens/ml-10m.zip) and enter the filename to use when downloading it.Leave the other properties as they are. Now go to scheduling tab and change the Run Schedule setting from 0 sec to 10 mins to avoid continuous fetching of data. 
+
+4.Now, drag another processor and search for UnpackContent and add it.
+
+5.Configure, Give the name in settings tab and check all the check boxes.
+
+6.Go to properties tab and select the packaging format as zip ( or tar depending upon the local file extension and give the regular expression in File Filter if want to filter the files).	
+
+7.drag the relation ship from GetFile/GetHTTP to UnpackContent and configure relationship.
+
+8.Drag a processor and search for RouteOnAttribute and Configure.
+
+9.Go to properties tab give Routing strategy as Route to property name.
+
+10.Add a new property by clicking + symbol on top-right corner Give the property name (Ex: movies) and set the value${filename:equals('movies.dat')} (filters all the files whose name is equals to movies.dat).
+
+11.Add another property, give the name (Ex:tag) ans set the value ${filename:startsWith('tags')} (filters all the files whose name starts with tags).
+
+12.Go to settings tab and give any name and check all the boxes and click apply.
+
+13.Drag a relationship from UnpackContent to RouteOnAttribute and configure it.
+
+14.Now, drag another processor and search for PutHDFS, add it. 
+
+15.Configure the processor in properties tab and give the HDFS configuration files location (core-site.xml and hdfs-site.xml) which will be in your $HADOOP_HOME/etc/hadoop/ 
+
+16.Give the HDFS directory location where you want to store the file in HDFS (usually /user/<your-directory> ) in Directory property.
+
+17.Drag the relation from RouteOnAttribute processor to PutHDFS processor and configure it (give the name and select the priority settings tab and check the boxes in details tab which you want to filter to HDFS)
+
+18.start the kafka server, create a topic, start the console consumer and producer.
+
+19.Now, drag another processor and search for PutKafka, add it.
+
+20.Configure the processor in properties tab give the known brokers as localhost port number of kafka broker (Ex:localhost:9092), give the topic name as <your-topicname> , give the client name as <anything>. 
+
+21.Go to settings tab and select the check boxes.
+
+22.Drag the relation from RouteOnAttribute processor to PutKafka processor and configure it (give the name and select the priority settings tab and check the boxes in details tab which you want to filter to Kafka consumer)
+
+23.Now select all components by Ctrl+A and start the process. Done. You can see the filtered files in HDFS in /user/<your-directory> and in kafka consumer terminal.

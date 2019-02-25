@@ -1,0 +1,20 @@
+
+Uploading files from local file system to HDFS
+
+1.Start the HDFS & nifi web interface by running http://localhost:8080/nifi
+
+2.Drag a processor and search for the GetFile and add it.
+
+3.Configure the processor in properties tab and give the input directory location from where you want to upload the file to HDFS ( you can provide regular expression to filter the files in File Filter property )
+
+4.Now, drag another processor and search for PutHDFS, add it. 
+
+5.Configure the processor in properties tab and give the HDFS configuration files location (core-site.xml and hdfs-site.xml) which will be in your $HADOOP_HOME/etc/hadoop/ 
+
+6.Give the HDFS directory location where you want to store the file in HDFS (usually /user/<your-directory> ) in Directory property.
+
+7.Drag the relation from GetFile processor to PutHDFS processor and configure it (give the name and select the priority settings tab and check all the boxes in details tab)
+
+8.Now select all components by Ctrl+A and start the process. Done. You can see the files in HDFS in /user/<your-directory>
+
+

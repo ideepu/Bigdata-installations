@@ -1,0 +1,93 @@
+ssh -p 2222 username@ip_address
+
+
+http://localhost:8080/nifi/
+
+
+************************************************************************************************
+
+To run/stop Process Group from CURL :
+
+
+curl 'http://localhost:8080/nifi-api/flow/process-groups/f6a7a0e2-015b-1000-3ea2-fffe4c1e77a9' -X PUT -H 'Accept-Encoding: gzip, deflate, sdch, br' -H 'Content-Type: application/json' -H 'Accept: application/json, text/javascript, */*; q=0.01' -H 'Referer: http://localhost:8080/nifi/' -H 'X-Requested-With: XMLHttpRequest' -H 'Connection: keep-alive' --data-binary '{"id":"f6a7a0e2-015b-1000-3ea2-fffe4c1e77a9","state":"RUNNING"}' --compressed
+
+
+
+curl 'http://localhost:8080/nifi-api/flow/process-groups/f6a7a0e2-015b-1000-3ea2-fffe4c1e77a9' -X PUT -H 'Accept-Encoding: gzip, deflate, sdch, br' -H 'Content-Type: application/json' -H 'Accept: application/json, text/javascript, */*; q=0.01' -H 'Referer: http://localhost:8080/nifi/' -H 'X-Requested-With: XMLHttpRequest' -H 'Connection: keep-alive' --data-binary '{"id":"f6a7a0e2-015b-1000-3ea2-fffe4c1e77a9","state":"STOPPED"}' --compressed
+
+*******************************************************************************************
+To Run/Stop the processor from CURL :
+
+curl 'http://localhost:8080/nifi-api/processors/1078fb88-015c-1000-7862-ab1c4d0b1bf9'
+
+By using above command we need to check the version id and update in the below command
+
+curl 'http://localhost:8080/nifi-api/processors/34ac3b5f-015c-1000-a0e6-4edc5380c6a0' -X PUT -H 'Content-Type: application/json' -H 'Accept: application/json, text/javascript, */*; q=0.01' --data-binary '{"revision":{"clientId":"1acc1acd-015c-1000-8796-69103c785446","version":3},"component":{"id":"34ac3b5f-015c-1000-a0e6-4edc5380c6a0","state":"RUNNING"}}'
+
+
+curl 'http://localhost:8080/nifi-api/processors/1078fb88-015c-1000-7862-ab1c4d0b1bf9' -X PUT -H 'Content-Type: application/json' -H 'Accept: application/json, text/javascript, */*; q=0.01' --data-binary '{"revision":{"clientId":"1acc1acd-015c-1000-8796-69103c785446","version":7},"component":{"id":"1078fb88-015c-1000-7862-ab1c4d0b1bf9","state":"STOPPED"}}'
+
+********************************************************************************************
+
+Creating new processors command
+
+    curl -X POST \
+    -H "Accept: application/json, text/javascript, */*; q=0.01" \
+    -H "Accept-Encoding: gzip" \
+    -H "Accept-Language: en-US,en;q=0.5" \
+    -H "Authorization: Bearer eyJhbGciOiJIUzI1NiJ9" \
+    -H "Connection: keep-alive" \
+    -H "Content-Length: 229" \
+    -H "Content-Type: application/json" \
+    -H "Host: localhost:8080" \
+    -H "Referer: https://localhost:8080/nifi/login" \
+    -H "X-Requested-With: XMLHttpRequest" \
+    -d '{"revision":{"clientId":"556f3dcf-c8d4-1145-0d1b-539ef89a01da","version":0},"component":{"type":"org.apache.nifi.processors.standard.GetFile","name":"GetFile","position":{"x":1406.2231010674523,"y":1243.8565539964334}}}' \
+    http://localhost:8080/nifi-api/process-groups/f2393dbf-015b-1000-d2ef-3ec129d7da5b/processors
+
+
+------------------------------------------------------------------------------
+update the parameters for processors command:-
+
+   curl 'http://localhost:8080/nifi-api/processors/1078fb88-015c-1000-7862-ab1c4d0b1bf9' -X PUT -H 'Content-Type: application/json' -H 'Accept: application/json, text/javascript, */*; q=0.01' --data-binary '{"revision":{"clientId":"1acc1acd-015c-1000-8796-69103c785446","version":17},"component":{"id":"1078fb88-015c-1000-7862-ab1c4d0b1bf9","config": { "properties": { "Input Directory":"/home/tcs/Downloads/test2/"}}}}'
+
+----------------------------------------------------------------------------------------------------------------------
+Command to establish connection between two processors:-
+
+curl -X POST 'http://localhost:8080/nifi-api/process-groups/f2393dbf-015b-1000-d2ef-3ec129d7da5b/connections' \
+ -H 'Content-Type: application/json' \
+ -H 'Accept: application/json' \
+ --data-binary '{
+    "revision": {
+        "clientId": "34b270de-015c-1000-fc00-866fb04ce88f",
+        "version": 0
+    },
+    "component": {
+        "name": "",
+        "source": {
+            "id": "43ec9e0e-015c-1000-2fad-4e3ac588f9df",
+            "groupId": "f2393dbf-015b-1000-d2ef-3ec129d7da5b",
+            "type": "PROCESSOR"
+        },
+        "destination": {
+            "id": "43ee0b0b-015c-1000-e228-f6c9705cd4db",
+            "groupId": "f2393dbf-015b-1000-d2ef-3ec129d7da5b",
+            "type": "PROCESSOR"
+        },
+        "selectedRelationships": ["success"],
+        "flowFileExpiration": "0 sec",
+        "backPressureDataSizeThreshold": "1 GB",
+        "backPressureObjectThreshold": "10000",
+        "bends": [],
+        "prioritizers": []
+    }
+}' 
+
+
+--------------------------------------------------------------------------------------
+Command to Delete a NIfi processor using Curl:---
+
+curl -X DELETE \
+'http://localhost:8080/nifi-api/processors/1078fb88-015c-1000-7862-ab1c4d0b1bf9?version=18&clientId=1acc1acd-015c-1000-8796-69103c785446' 
+
+************************************************************************************************

@@ -1,0 +1,67 @@
+                            # Cassandra Installation
+
+# How To Install Cassandra and Run a Single-Node Cluster on Ubuntu 14.04
+
+# Add the Apache repository of Cassandra to /etc/apt/sources.list.d/cassandra.sources.list, for example for version 3.10:
+
+echo "deb http://www.apache.org/dist/cassandra/debian 310x main" | sudo tee -a /etc/apt/sources.list.d/cassandra.sources.list
+
+# The add the repo's source:
+
+echo "deb-src http://www.apache.org/dist/cassandra/debian 310x main" | sudo tee -a /etc/apt/sources.list.d/cassandra.sources.list
+
+# Add the Apache Cassandra repository keys:
+curl https://www.apache.org/dist/cassandra/KEYS | sudo apt-key add -
+
+# Update the repositories:
+sudo apt-get update
+
+If you encounter this error while installing cassandra:
+
+GPG error: http://www.apache.org 310x InRelease: The following signatures couldn't be verified because the public key is not available: NO_PUBKEY A278B781FE4B2BDA
+
+Then add the public key A278B781FE4B2BDA as follows:
+
+gpg --keyserver pgp.mit.edu --recv-keys A278B781FE4B2BDA
+gpg --export --armor A278B781FE4B2BDA | sudo apt-key add -
+
+and repeat sudo apt-get update. The actual key may be different, you get it from the error message itself.  
+
+If you don't get any error then do the following steps:
+
+To avoid package signature warnings during package updates, we need to add three public keys from the Apache Software Foundation associated with the package repositories.
+
+Add the keys using this pair of commands, which must be run one after the other:
+
+gpg --keyserver pgp.mit.edu --recv-keys F758CE318D77295D
+gpg --export --armor F758CE318D77295D | sudo apt-key add -
+
+gpg --keyserver pgp.mit.edu --recv-keys 2B5C1B00
+gpg --export --armor 2B5C1B00 | sudo apt-key add -
+
+gpg --keyserver pgp.mit.edu --recv-keys 0353B12C
+gpg --export --armor 0353B12C | sudo apt-key add -
+
+and repeat sudo apt-get update.
+
+reference:
+https://www.digitalocean.com/community/tutorials/how-to-install-cassandra-and-run-a-single-node-cluster-on-ubuntu-14-04
+
+(There are times when running apt-get update in Ubuntu will result in error messages such as the above:
+	If these errors aren’t fixed, apt will have problems when installing or upgrading packages. 
+	The apt packaging system has a set of trusted keys that determine whether a package can be authenticated and therefore trusted to be installed on the system. Sometimes the system does not have all the keys it needs and runs into this issue. Fortunately, there is a quick fix. Each key that is listed as missing needs to be added to the apt key manager so that it can authenticate the packages.
+Looking at the error above, apt is telling us that the following key is missing: A278B781FE4B2BDA. Notice that these are listed multiple times. Each unique key will only need to be added once.)
+
+
+Install Cassandra:
+sudo apt-get install cassandra
+
+You can start Cassandra with sudo service cassandra start and stop it with sudo service cassandra stop. However, normally the service will start automatically. For this reason be sure to stop it if you need to make any configuration changes.
+Verify that Cassandra is running by invoking nodetool status from the command line.
+The default location of configuration files is /etc/cassandra.
+The default location of log and data directories is /var/log/cassandra/ and /var/lib/cassandra.
+Start-up options (heap size, etc) can be configured in /etc/default/cassandra.
+
+
+
+

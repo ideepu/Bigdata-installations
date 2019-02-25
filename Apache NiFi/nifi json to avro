@@ -1,0 +1,32 @@
+
+Converting json files to avro using nifi
+
+refer this link for converting the CSV files to avro using nifi (https://community.hortonworks.com/articles/28341/converting-csv-to-avro-with-apache-nifi.html)
+
+1.start nifi web interface by running http://localhost:8080/nifi
+
+2.Drag a processor and search for the GetFile and add it.
+
+3.Configure the processor in properties tab and give the input directory location from where you want to upload the .jason file ( you can provide regular expression to filter the files in File Filter property )
+
+4.Now, drag another processor and search for InferAvroSchema which is used to create the avroschema for .json/.csv files and add it.
+
+5.Configure, in the properties tab select flowfile-attribute for Schema Output Destination, input content type as json ( if you are trying to convert .csv to avro then please refer the above mentioned link) and give Avro Record name as you desired.
+
+6.in settings tab select all the check boxes,Now drag a relationship from GetFile to InferAvroSchema and configure the relationship.
+
+7.Now, drag another processor and search for ConvertJSONToAvro and add it.
+
+8.Configure the processor, in properties tab and give the HDFS configuration files location (core-site.xml and hdfs-site.xml) which will be in your $HADOOP_HOME/etc/hadoop/  
+
+9.Record schema as ${inferred.avro.schema} (nifi expression language) and select any of the compression type from the list 
+
+10.select the check boxes in settings tab and drag the relationship from InferAvroSchema to ConvertJSONToAvro and configure the relation ship.
+
+11.Now, drag another processor and search for PutFile and add it.
+
+12.Configure, in properties tab give Directory location where you want to save the converted avro file, in settings tab check all the check boxes.
+
+13.drag a relation from ConvertJSONToAvro to PutFile and configure the relationship.
+
+14.Now select all components by Ctrl+A and start the process. Done. Now you can see the process running and after conversion the file will be stored at the location you specified.

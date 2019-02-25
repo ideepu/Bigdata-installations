@@ -1,0 +1,21 @@
+validating xml against the xsd
+
+1.start nifi web interface by running http://localhost:8080/nifi
+
+2.Drag a processor and search for the GetFile and add it.
+
+3.Configure the processor in properties tab and give the input directory location from where you want to upload the file to validate it.( you can provide regular expression to filter the files in File Filter property )
+
+4.Now, drag another processor and search for ValidateXml, add it.
+
+5.Configure the processor in the properties tab give the Schema file location against which the xml file has to be validated and in the settings tab chech the invalid checkbox click apply.
+
+6.Now give the relationship from GetFile to ValidateXml and configure it.
+
+7.Now, drag another processor and search for PutFile, add it.
+
+8.Configure, in properties tab give Directory location where you want to save the converted avro file, in settings tab check all the check boxes.
+
+9.drag a relation from ValidateXml to PutFile and configure the relationship.
+
+10.Now select all components by Ctrl+A and start the process. Done. Now you can see the process running and the xml file will be validated and if it is valid it will be stored in the destination directory.

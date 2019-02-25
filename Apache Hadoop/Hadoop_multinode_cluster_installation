@@ -1,0 +1,246 @@
+1.install java in all machines
+	sudo -E add-apt-repository ppa:webupd8team/java
+	sudo apt-get update
+	sudo apt-get install oracle-java8-installer
+	
+	export JAVA_HOME=/usr/lib/jvm/java-8-oracle
+	export PATH=$PATH:$JAVA_HOME/bin
+
+2.Edit /etc/hosts and update the slaves and machines (on all machines)
+
+        10.138.89.49 hdp01
+        10.138.89.55 hdp02
+        10.138.89.64 hdp03
+
+3.Install Open SSH Server-Client(on all machines)
+        sudo apt-get install openssh-server openssh-client
+
+4.Create Hadoop group
+        $ sudo addgroup hadoop
+
+        Create a user inside “hadoop” group (enter/confirm password and other fields can be left blank)
+        $ sudo adduser --ingroup hadoop hduser
+
+        Give linux control to “hduser”, add hduser in sudoers file
+        sudo su
+        sudo adduser hduser sudo
+	su - hduser
+
+5.Generate Key Pairs(on all machines)
+        ssh-keygen -t rsa -P ""
+
+6.Enable the authorization(on all machines)
+        $ cp /home/hduser/.ssh/id_rsa.pub /home/hduser/.ssh/authorized_keys
+
+7.Copy the public key from master to slaves and vice versa(on all machines)
+# hdp01 to hdp02/03
+# hdp02 to hdp01/03
+# hdp03 to hdp01/02
+        $ ssh-copy-id -i /home/hduser/.ssh/id_rsa.pub hduser@hdp02
+
+8.Modify permissions(on all machines)
+    sudo chmod 700 /home/hduser/.ssh
+    sudo chmod 640 /home/hduser/.ssh/authorized_keys
+    sudo chmod 600 /home/hduser/.ssh/id_rsa
+
+9. Check you connection between the nodes(on all machines)
+        $ ssh hduser@hdp02
+
+NOTE:(Make sure you are doing all the steps from 10 to 16 on each machine to install hadoop on each machine)
+
+
+10.Install Hadoop(on all machines)
+	wget http://www-us.apache.org/dist/hadoop/common/hadoop-2.8.0/hadoop-2.8.0.tar.gz
+	tar -xzf hadoop-2.8.0.tar.gz
+	
+	We want to move the Hadoop installation to the /usr/local/hadoop directory using the following command:
+	sudo mv hadoop-2.8.0/* /usr/local/hadoop
+	sudo chown -R hduser:hadoop /usr/local/hadoop
+	
+11.Edit ~/.bashrc 
+		Before editing the .bashrc file in our home directory, we need to find the path where Java has been installed to set the JAVA_HOME environment variable using the following command:
+	$update-alternatives --config java
+	
+	Now we can append the following to the end of ~/.bashrc:
+	hduser@hdp01:~$ vi ~/.bashrc
+		#HADOOP VARIABLES START
+		export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64
+		export HADOOP_INSTALL=/usr/local/hadoop
+		export PATH=$PATH:$HADOOP_INSTALL/bin
+		export PATH=$PATH:$HADOOP_INSTALL/sbin
+		export HADOOP_MAPRED_HOME=$HADOOP_INSTALL
+		export HADOOP_COMMON_HOME=$HADOOP_INSTALL
+		export HADOOP_HDFS_HOME=$HADOOP_INSTALL
+		export YARN_HOME=$HADOOP_INSTALL
+		export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_INSTALL/lib/native
+		export HADOOP_OPTS="-Djava.library.path=$HADOOP_INSTALL/lib"
+		#HADOOP VARIABLES END
+	hduser@hdp01:~$ source ~/.bashrc
+	note that the JAVA_HOME should be set as the path just before the '.../bin/':
+	hduser@hdp01:~$javac -version
+	hduser@hdp01:~$ which javac
+	hduser@hdp01:~$ readlink -f /usr/bin/javac
+
+12.Edit /usr/local/hadoop/etc/hadoop/hadoop-env.sh
+	We need to set JAVA_HOME by modifying hadoop-env.sh file.
+	hduser@hdp01:~$ vi /usr/local/hadoop/etc/hadoop/hadoop-env.sh
+		export JAVA_HOME=/usr/lib/jvm/java-8-oracle
+	Adding the above statement in the hadoop-env.sh file ensures that the value of JAVA_HOME variable will be available to Hadoop whenever it is started up.
+
+13.Edit /usr/local/hadoop/etc/hadoop/core-site.xml:
+	The /usr/local/hadoop/etc/hadoop/core-site.xml file contains configuration properties that Hadoop uses when starting up.
+This file can be used to override the default settings that Hadoop starts with. 
+	hduser@hdp01:~$ sudo mkdir -p /app/hadoop/tmp
+	hduser@hdp01:~$ sudo chown hduser:hadoop /app/hadoop/tmp
+
+	Open the file and enter the following in between the <configuration></configuration> tag:
+	hduser@hdp01:~$ vi /usr/local/hadoop/etc/hadoop/core-site.xml
+	<configuration>
+	 <property>
+	  <name>hadoop.tmp.dir</name>
+	  <value>/app/hadoop/tmp</value>
+	  <description>A base for other temporary directories.</description>
+	 </property>
+	
+	 <property>
+	  <name>fs.default.name</name>
+	  <value>hdfs://localhost:54310</value>
+	  <description>The name of the default file system.  A URI whose
+	  scheme and authority determine the FileSystem implementation.  The
+	  uri's scheme determines the config property (fs.SCHEME.impl) naming
+	  the FileSystem implementation class.  The uri's authority is used to
+	  determine the host, port, etc. for a filesystem.</description>
+	 </property>
+	</configuration>
+	
+14.Edit /usr/local/hadoop/etc/hadoop/mapred-site.xml
+	By default, the /usr/local/hadoop/etc/hadoop/ folder contains /usr/local/hadoop/etc/hadoop/mapred-site.xml.template file which has to be renamed/copied with the name mapred-site.xml:
+
+	hduser@hdp01:~$ cp /usr/local/hadoop/etc/hadoop/mapred-site.xml.template /usr/local/hadoop/etc/hadoop/mapred-site.xml
+
+	The mapred-site.xml file is used to specify which framework is being used for MapReduce.We need to enter the following content in between the <configuration></configuration> tag: 
+
+	<configuration>
+	 <property>
+	  <name>mapred.job.tracker</name>
+	  <value>localhost:54311</value>
+	  <description>The host and port that the MapReduce job tracker runs
+	  at.  If "local", then jobs are run in-process as a single map
+	  and reduce task.
+	  </description>
+	 </property>
+	</configuration>
+
+15.Edit /usr/local/hadoop/etc/hadoop/hdfs-site.xml
+
+	The /usr/local/hadoop/etc/hadoop/hdfs-site.xml file needs to be configured for each host in the cluster that is being used.
+It is used to specify the directories which will be used as the namenode and the datanode on that host.
+
+Before editing this file, we need to create two directories which will contain the namenode and the datanode for this Hadoop installation.
+This can be done using the following commands:
+
+	hduser@hdp01:~$ sudo mkdir -p /usr/local/hadoop_store/hdfs/namenode
+	hduser@hdp01:~$ sudo mkdir -p /usr/local/hadoop_store/hdfs/datanode
+	hduser@hdp01:~$ sudo chown -R hduser:hadoop /usr/local/hadoop_store
+
+	Open the file and enter the following content in between the <configuration></configuration> tag
+	hduser@hdp01:~$ vi /usr/local/hadoop/etc/hadoop/hdfs-site.xml
+	<configuration>
+	 <property>
+	  <name>dfs.replication</name>
+	  <value>1</value>
+	  <description>Default block replication.
+	  The actual number of replications can be specified when the file is created.
+	  The default is used if replication is not specified in create time.
+	  </description>
+	 </property>
+	 <property>
+	   <name>dfs.namenode.name.dir</name>
+	   <value>file:/usr/local/hadoop_store/hdfs/namenode</value>
+	 </property>
+	 <property>
+	   <name>dfs.datanode.data.dir</name>
+	   <value>file:/usr/local/hadoop_store/hdfs/datanode</value>
+	 </property>
+	</configuration>
+	
+16.Format the New Hadoop Filesystem
+	hduser@hdp01:~$ hadoop namenode -format
+
+17.On Master
+	Edit the masters file and add master hostname to file as below.
+	vi /usr/local/hadoop/etc/hadoop/masters
+		hdp01
+
+	Edit the slaves file and add slaves hostname to file as below.
+	cp /usr/local/hadoop/etc/hadoop/slaves.template /usr/local/hadoop/etc/hadoop/slaves
+	vi /usr/local/hadoop/etc/hadoop/slaves
+		hdp02
+		hdp03
+
+18.On Slave
+	Edit the masters file on each slave as below.
+	vi /usr/local/hadoop/etc/hadoop/masters
+		hdp01
+19.Edit /usr/local/hadoop/etc/hadoop/core-site.xml,mapred-site.xml,hdfs-site.xml (all machines)
+
+	/usr/local/hadoop/etc/hadoop/core-site.xml (ALL machines) 
+	change the "fs.default.name" value from localhost to master hostname
+	 
+	<property>
+	  <name>fs.default.name</name>
+	  <value>hdfs://hdp01:54310</value>
+	  <description>The name of the default file system.  A URI whose
+	  scheme and authority determine the FileSystem implementation.  The
+	  uri's scheme determines the config property (fs.SCHEME.impl) naming
+	  the FileSystem implementation class.  The uri's authority is used to
+	  determine the host, port, etc. for a filesystem.</description>
+	</property>
+
+	/usr/local/hadoop/etc/hadoop/mapred-site.xml (ALL machines) 
+	change "mapred.job.tracker" value from localhost to master hostname
+	<property>
+	  <name>mapred.job.tracker</name>
+	  <value>hdp01:54311</value>
+	  <description>The host and port that the MapReduce job tracker runs
+	  at.  If "local", then jobs are run in-process as a single map
+	  and reduce task.
+	  </description>
+	</property>
+
+	/usr/local/hadoop/etc/hadoop/hdfs-site.xml (ALL machines)
+	change "dfs.replication" value to 2 beacuse we are making two datanode and one namenode cluster 
+	<property>
+	  <name>dfs.replication</name>
+	  <value>2</value>
+	  <description>Default block replication.
+	  The actual number of replications can be specified when the file is created.
+	  The default is used if replication is not specified in create time.
+	  </description>
+	</property>
+
+
+20.Formatting the HDFS filesystem via the NameNode(on master)
+	hduser@hdp01:/usr/local/hadoop$ bin/hadoop namenode -format
+	
+	Starting the multi-node cluster
+	./usr/local/hadoop/sbin/start-dfs.sh
+	./usr/local/hadoop/sbin/start-yarn.sh
+
+Check the NameNode status:  http://master-ip:50070/
+
+
+
+
+ERRORS:
+ 
+If this error comes when you try "hdfs namenode -format"  please ensure that your hadoop is pointing to correct location 
+Error: Could not find or load main class org.apache.hadoop.hdfs.server.namenode.NameNode
+
+Solution:
+Check "which hadoop" is pointing to "/usr/local/hadoop/bin"
+and also check "which hdfs" is pointing to "/usr/local/hadoop/bin"
+
+export HADOOP_HOME in bashrc file and do "source ~/.bashrc"
+
+

@@ -1,0 +1,19 @@
+splitting xml file 
+
+1.start nifi web interface by running http://localhost:8080/nifi
+
+2.Drag a processor and search for the GetFile and add it.
+
+3.Configure the processor in properties tab and give the input directory location from where you want to upload the .xml file ( you can provide regular expression to filter the files in File Filter property ) 
+
+4.Now, drag another processor and search for SplitXml which is used to split xml file.
+
+5.Configure, go to properties tab and give the depth as 1 which indicates the XML-nesting depth to start splitting XML fragments and go to the settings tab select failure and original.Now give the relationship from GetFile to SplitXml and configure it.
+
+6.Now, drag another processor and search for PutKafka and add it( Here PutFile or PutHDFS may not work because splitXML will generate multiple files as output and it will try to store those files with same name which may leads to inconsistency).
+
+7.Configure, go to properties tab give the known brokers as localhost:9092, Topic name which you have created and give the client name as you desired.
+
+8.Go to settings tab and check all the boxes and drag the relationship from the SplitXml to PutKafka and configure it.
+
+9.Now select all the three components and start them. Now you can see the file is split into multiple files in your kafka consumer console.

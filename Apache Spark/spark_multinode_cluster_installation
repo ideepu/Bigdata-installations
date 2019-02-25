@@ -1,0 +1,70 @@
+1.install java in all machines
+
+2.Edit /etc/hosts and update the slaves and machines (on all machines)
+	
+	10.138.89.1 hdp01
+	10.138.89.2 hdp02
+	10.138.89.3 hdp03
+
+3.Install Open SSH Server-Client(on all machines)
+	sudo apt-get install openssh-server openssh-client
+
+4.Generate Key Pairs(on all machines)
+	ssh-keygen -t rsa -P ""
+
+5.Enable the authorization(on all machines)
+	$ cp /home/hduser/.ssh/id_rsa.pub /home/hduser/.ssh/authorized_keys
+
+6.Copy the public key from master to slaves and vice versa(on all machines)
+# hdp01 to hdp02/03
+# hdp02 to hdp01/03
+# hdp03 to hdp01/02
+	$ ssh-copy-id -i /home/hduser/.ssh/id_rsa.pub hduser@hdp02
+
+7.Modify permissions(on all machines)
+    sudo chmod 700 /home/hduser/.ssh 
+    sudo chmod 640 /home/hduser/.ssh/authorized_keys
+    sudo chmod 600 /home/hduser/.ssh/id_rsa 
+
+8. Check you connection between the nodes(on all machines)
+	$ ssh hduser@hdp02
+
+9.Download scala from the following link(on all machines)
+	wget http://www.scala-lang.org/files/archive/scala-2.10.4.tgz
+
+	tar -xzf scala-2.10.4.tgz
+	mv scala-2.10.4 /usr/local/scala
+
+	vi ~/.bashrc 	
+		export SCALA_HOME=/usr/local/scala
+		export PATH=$PATH:$SCALA_HOME/bin	
+
+10.Download spark(on all machines)
+	wget https://d3kbcqa49mib13.cloudfront.net/spark-1.6.1-bin-hadoop2.6.tgz
+	tar xzf spark-2.0.0-bin-hadoop2.6.tgz
+	mv spark-2.0.0-bin-hadoop2.6 /usr/local/spark
+	vi ~/.bashrc 
+		export SPARK_HOME=/usr/local/spark
+		export PATH=$PATH:$SPARK_HOME/bin
+	source ~/.bashrc
+
+11.Edit  spark-env.sh in /usr/local/spark/conf(on all machines)
+	cp spark-env.sh.template spark-env.sh
+	
+	add these two lines in spark-env.sh
+		export JAVA_HOME="your java installation directory"(eg: /usr/lib/jvm/java-7-oracle/)
+		export SPARK_WORKER_CORES=8
+
+12.Add salves (on master only)
+	$cp /usr/local/spark/conf/slaves.template /usr/local/spark/conf/slaves
+		add host names of the nodes to slaves file
+			hdp01
+			hdp02
+13.Start Spark Cluster
+	$./usr/local/spark/sbin/start-all.sh
+
+14.Spark Web UI
+	http://MASTER-IP:8080/
+
+15.Stop the Cluster
+	$./usr/local/spark/sbin/stop-all.sh

@@ -1,0 +1,79 @@
+
+ Change IP or Hostname for an already installed Cloudera Manager 4.x (CM 4.0)
+
+
+I installed the Cloudera Manager 4 on a 1GbE default setup on eth0/bond0 and now I need to use 10GbE or Infiniband IB or 40GbE without the reinstall. How I did it!!
+ The assumptions here are that you already have a CM 4.x already installed with the default embedded postgres DB on a linux server
+. If you want to learn how-to just ask...
+
+Let's start here where I have a 3 cluster setup with yosemite001 - yosemite003
+
+ hostname = yosemite00[1-3].somedomain.com = CM Installed on 1GbE
+
+
+    Shutdown all services
+    service cloudera-scm-agent stop on all nodes 
+    service cloudera-scm-server stop on CM server
+
+
+From here if you have a paid or supported version, You are about to lose it or maybe they say "Cool good job!!"  proceed at your own risk...
+from the CM Server
+as root su – postgres (If you have installed on a different database then login using that credentials)
+
+psql -h localhost -p 7432 -U scm
+à When asked for the password open another terminal and run
+[root@yosemite001 ~]# grep password /etc/cloudera-scm-server/db.properties
+com.cloudera.cmf.db.password=TVkDZxuNCw
+paste the password & you should see the scm prompt
+scm=>  select host_id,host_identifier,name,ip_address from hosts;  --> Check the current config and save the values in a file/notepad you will need this if you need to flip back.
+
+host_id |    host_identifier    |         name          |   ip_address
+---------+-----------------------+-----------------------+----------------
+       2 | yosemite001.somedomain.com | yosemite001.somedomain.com | 192.168.0.11
+       3 | yosemite002.somedomain.com | yosemite002.somedomain.com | 192.168.0.12
+       4 | yosemite003.somedomain.com | yosemite003.somedomain.com | 192.168.0.13
+(3 rows)
+
+scm=> update hosts set (host_identifier,name,ip_address) = ('yosemite001-10g.somedomain.com','yosemite001-10g.somedomain.com','192.168.10.11') where host_id=2;
+UPDATE 1
+
+Update all the other rows.
+
+Check if the updates went through
+
+scm=>  select host_id,host_identifier,name,ip_address from hosts;
+host_id |     host_identifier                       |           name                                   |   ip_address
+---------+-------------------------------------+---------------------------------------+----------------
+       3 | yosemite002.somedomain.com    | yosemite002.somedomain.com    | 192.168.0.12
+       4 | yosemite003.somedomain.com    | yosemite003.somedomain.com    | 192.168.0.13
+       2 | yosemite001-somedomain.com | yosemite001-ib.somedomain.com | 192.168.10.11
+(3 rows)
+
+Exit the tool  “\q;”
+
+edit the /etc/cloudera-scm-agent/config.ini and update the server and the listen ip & hostname section on all nodes to the new interface ip & address
+
+edit /etc/sysconfig/network with the new hostname for the interface
+run hostname yosemite001-10g (Update all hostnames on the servers)
+run “exec bash” and verify the hostname change is done
+
+Run on the CM Server
+chkconfig cloudera-scm-server on
+service cloudera-scm-server start
+
+Run the following on all the nodes
+
+chkconfig cloudera-scm-agent on
+service cloudera-scm-agent start on all the nodes
+
+Login to the GUI verify the host changes and “Good health”
+
+Force CM to rerun the configuration to register the changes (mimic changes and revert to force CM a rerun of config )
+
+Go to the hdfs->system-wide config edit/changes and make any minimal changes and save and revert back to original and save
+Do the same for mapreduce as well
+Restart the services
+
+Verify the client functionality by running Terasort.
+
+reference: http://bigdata-helpline.blogspot.in/2013/03/change-ip-or-hostname-for-already.html
