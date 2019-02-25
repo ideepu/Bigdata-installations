@@ -1,0 +1,232 @@
+CASSANDRA CLUSTER SETUP
+
+Do the following steps in all nodes in cluster.
+
+1. Download java from the below link and install it.
+http://download.oracle.com/otn-pub/java/jdk/8u121-b13/e9e7ea248e2c4826b92b3f075a80e441/jdk-8u121-linux-x64.tar.gz
+2. Set the JAVA_HOME  environment variable like below.
+ JAVA_HOME=/usr/lib/jvm/java-8-oracle/
+3. set the PATH environment variable like below.
+ PATH=$PATH:$JAVA_HOME
+
+
+To download and install the cassandra follow the below steps in each node.
+
+We have to install Cassandra using packages from the official Apache Software Foundation repositories, so start by adding the repo so that the packages are available to the system.Use the below command to add the   
+source list
+
+echo "deb http://www.apache.org/dist/cassandra/debian 310x main" | sudo tee -a /etc/apt/sources.list.d/cassandra.sources.list
+
+Add the repo's source:
+
+echo "deb-src http://www.apache.org/dist/cassandra/debian 310x main" | sudo tee -a /etc/apt/sources.list.d/cassandra.sources.list
+
+To avoid package signature warnings during package updates, we need to add three public keys from the Apache Software Foundation associated with the package repositories.The following sequence of commands add the public keys.
+
+gpg --keyserver pgp.mit.edu --recv-keys F758CE318D77295D 
+gpg --export --armor F758CE318D77295D | sudo apt-key add -
+gpg --keyserver pgp.mit.edu --recv-keys 2B5C1B00 
+gpg --export --armor 2B5C1B00 | sudo apt-key add -
+gpg --keyserver pgp.mit.edu --recv-keys 0353B12C 
+gpg --export --armor 0353B12C | sudo apt-key add -
+
+We need to update the package database 
+sudo apt-get update
+
+Now,install cassandra by using following command
+sudo apt-get install cassandra
+
+Cluster Set up:
+Run below command  on each node to stop the Cassandra daemon.
+	sudo service cassandra stop
+Delete the Default dataset on each node.
+sudo rm -rf /var/lib/cassandra/data/system/*
+Open the cassandra configuration file on each using below command.
+Vi /etc/cassandra/cassandra.yaml
+Update the configuration file as shown below on each node.
+Node 1:
+
+cluster_name: 'CassandraCluster'
+
+seed_provider:
+  -class_name:org.apache.cassandra.locator.SimpleSeedProvider
+    parameters:
+         - seeds:"10.138.89.38,10.138.89.47"
+
+listen_address: 10.138.89.35
+
+rpc_address: 10.138.89.35
+
+endpoint_snitch: GossipingPropertyFileSnitch
+
+	If you are setting up the cluster for the first time then add 	the following line at the end of the configuration 	file(cassandra.yaml).
+	
+	auto_bootstrap: false
+
+Node 2:
+
+cluster_name: 'CassandraCluster'
+
+seed_provider:
+  -class_name:org.apache.cassandra.locator.SimpleSeedProvider
+    parameters:
+         - seeds:"10.138.89.38,10.138.89.47"
+
+listen_address: 10.138.89.38
+
+rpc_address: 10.138.89.38
+
+endpoint_snitch: GossipingPropertyFileSnitch
+
+	If you are setting up the cluster for the first time then add 	the following line at the end of the configuration 	file(cassandra.yaml).
+	
+	auto_bootstrap: false
+
+
+Node 3:
+cluster_name: 'CassandraCluster'
+
+seed_provider:
+  -class_name:org.apache.cassandra.locator.SimpleSeedProvider
+    parameters:
+         - seeds:"10.138.89.38,10.138.89.47"
+
+listen_address: 10.138.89.47
+
+rpc_address: 10.138.89.47
+
+endpoint_snitch: GossipingPropertyFileSnitch
+
+	If you are setting up the cluster for the first time then add 	the following line at the end of the configuration 	file(cassandra.yaml).
+	
+	auto_bootstrap: false
+Configuring the Firewall:
+Note:don't do the following settings untill unless you aware of it. These following commands will put rules on your firewall
+At this point, the cluster has been configured, but the nodes will not able to  communicate. In this step, we have to  configure the firewall to allow Cassandra traffic.restart the Cassandra daemon on each node.
+	sudo service cassandra restart
+If we check the status of the cluster, we will find that only the local node is listed, because it's not yet able to communicate with the other nodes.
+	sudo nodetool status
+To allow communication, we'll need to open certain network ports for each node. Follow the below commands to do so.
+ 	vi /etc/iptables/rules.v4
+	Copy and paste the following linebefore the # Reject anything 	that's fallen through to this point comment
+	node 1:
+	-A INPUT -p tcp -s 10.138.89.38 -m multiport --dports 	7000,9042 -m state --state NEW,ESTABLISHED -j ACCEPT
+	
+	-A INPUT -p tcp -s 10.138.89.47 -m multiport --dports 	7000,9042 -m state --state NEW,ESTABLISHED -j ACCEPT
+	
+	node 2:
+	-A INPUT -p tcp -s 10.138.89.35 -m multiport --dports 	7000,9042 -m state --state NEW,ESTABLISHED -j ACCEPT
+	-A INPUT -p tcp -s 10.138.89.47 -m multiport –dport
+	7000,9042 -m state --state NEW,ESTABLISHED -j ACCEPT
+	node 3:
+	-A INPUT -p tcp -s 10.138.89.35 -m multiport --dports 	7000,9042 -m state --state NEW,ESTABLISHED -j ACCEPT
+	
+	-A INPUT -p tcp -s 10.138.89.38 -m multiport --dports 	7000,9042 -m state --state NEW,ESTABLISHED -j ACCEPT
+	save and close the fille and restart iptables using following 	command
+	sudo service iptables-persistent restart
+We've now completed all the steps needed to make the nodes into a multi-node cluster.Verify the cluster status using following command.
+	sudo nodetool status
+
+Cassandra Snapshot:
+cassandra will automatically take the snapshot by updating the below configuration in configuration file(cassandra.yaml).
+auto_snapshot: true
+To take a snapshot of one or more keyspaces, or of a table, to backup data.
+Syntax:
+nodetool <options> snapshot
+		  ( -cf <table> | --column-family <table> )
+		  (-kc <ktlist> | --kc.list <ktlist> | -kt <ktlist> | 				--kt-list <ktlist>)
+		  ( -t <tag> | --tag <tag> )
+		-- ( <keyspace>  |  <keyspace> ... )
+Cassandra flushes the node before taking a snapshot, takes the snapshot, and stores the data in the snapshot directory of each keyspace i# create new
+# change to your own suffix for the field 'dc=srv,dc=world'n the data directory. If you do not specify the name of a snapshot directory using the -t option, Cassandra names the directory using the timestamp of the snapshot, for example 1391460334889. Follow the procedure for taking a snapshot before upgrading Cassandra. When upgrading, backup all keyspaces.
+Use the below command to take a snapshot for all keyspaces.
+nodetool snapshot
+
+Use the below command to take a snapshot for single keyspace.
+nodetool snapshot -t <snapshot_directory_name> <keyspace_name>
+		
+Use the below command to take a snapshot for multiple keyspaces.
+nodetool snapshot <keyspace_1> <keyspace_2>
+
+Use the below command to take a snapshot for single table.
+nodetool snapshot -cf <table_name> <keyspace>
+
+Use the below command to take a snapshot for different keyspace tables.
+nodetool snapshot -kt <keyspace>.<tablename>,<keyspace>.<tablename>
+
+Update the following configuration in the configuratuion file(cassandra.yaml) to allow incrimental snapshot.
+
+		incremental_backups: true
+		
+ 
+Restoring from Snapshot:
+	Node Restart Method:If restoring a single node, you must first shutdown the node. If restoring an entire cluster, you must shut down all nodes, restore the snapshot data, and then start all nodes again.
+To shut down all the nodes run the following command in each node and do the following steps in each node.
+sudo service cassandra stop 
+To ensure that data is not lost, run nodetool drain. This is especially important if only a single table is restored.(node tool flushes all memtables from the node to SSTables on disk. Cassandra stops listening for connections from the client and other nodes. You need to restart Cassandra after running nodetool drain. You typically use this command before upgrading a node to a new version of Cassandra.)
+nodetool drain
+Clear all files in the commitlog directory.
+		 rm -rf /var/lib/cassandra/commitlog/*
+Delete all *.db files in data_directory_location/keyspace_name/keyspace_name-table_name directory, but DO NOT delete the /snapshots and /backups subdirectories
+Package installations: /var/lib/cassandra/data 
+Locate the most recent snapshot folder in this directory
+data_directory_location/keyspace_name/table_name-UUID/snapshots/snapshot_name
+Copy its contents into this directory
+		data_directory_location/keyspace_name/table_name-UUID 			directory.
+If using incremental backups, copy all contents of this directory
+		data_directory_location/keyspace_name/table_name-				UUID/backups
+Paste it into this directory
+		data_directory_location/keyspace_name/table_name-UUID
+To restart the all nodes run the following command in each node.
+sudo service cassandra start
+Run the following command to restore.
+nodetool repair
+nodetool refresh -- <keyspace> <table>
+
+SSTableloader Restore Method:
+		Yet to be analyzed.
+
+Restoring snapshot into a new cluster:
+From the old cluster, retrieve the list of tokens associated with each node's IP.
+Node 1:
+nodetool ring | grep 10.138.89.35 | awk '{print $NF ","}' | xargs
+Node 2:
+nodetool ring | grep 10.138.89.38 | awk '{print $NF ","}' | xargs
+Node 3:
+nodetool ring | grep 10.138.89.47 | awk '{print $NF ","}' | xargs
+In the cassandra.yaml file for each node in the new cluster, add the list of tokens you obtained in the previous step to the intial_token parameter using the same num_tokens setting as in the old cluster.
+Make any other necessary changes in the new cluster's cassandra.yaml and property files so that the new nodes match the old cluster settings. Make sure the seed nodes are set for the new cluster.
+Clear the system table data from each new node using following command.
+sudo rm -rf /var/lib/cassandra/data/system/*
+Start each node using the specified list of token ranges in new cluster's cassandra.yaml
+
+Create schema in the new cluster. All the schemas from the old cluster must be reproduced in the new cluster.
+Stop the node using following command(nodetool refresh is unsafe because files within the data directory of a running node can be silently overwritten by identically named just-flushed SSTables from memtable flushes or compaction. Copying files into the data directory and restarting the node will not work for the same reason).
+sudo service cassandra stop
+Restore the SSTable files snapshotted from the old cluster onto the new cluster using the same directories, while noting that the UUID component of target directory names has changed. Without restoration, the new cluster will not have data to read upon restart.
+Restart the each node by running following command on each node 
+cassandra -f -R 
+or
+sudo service cassandra start 
+
+
+Errors while installation of Cassandra:
+
+If you encounter this error while installing cassandra:
+GPG error: http://www.apache.org 310x InRelease: The following signatures couldn't be verified because the public key is not available: NO_PUBKEY A278B781FE4B2BDA
+
+Then add the public key A278B781FE4B2BDA as follows:
+
+gpg --keyserver pgp.mit.edu --recv-keys A278B781FE4B2BDA
+gpg --export --armor A278B781FE4B2BDA | sudo apt-key add -
+
+and repeat sudo apt-get update. The actual key may be different, you get it from the error message itself.  
+
+reference:
+https://www.digitalocean.com/community/tutorials/how-to-install-cassandra-and-run-a-single-node-cluster-on-ubuntu-14-04
+
+(There are times when running apt-get update in Ubuntu will result in error messages such as the above:
+	If these errors aren’t fixed, apt will have problems when installing or upgrading packages. 
+	The apt packaging system has a set of trusted keys that determine whether a package can be authenticated and therefore trusted to be installed on the system. Sometimes the system does not have all the keys it needs and runs into this issue. Fortunately, there is a quick fix. Each key that is listed as missing needs to be added to the apt key manager so that it can authenticate the packages.
+
+Looking at the error above, apt is telling us that the following key is missing: A278B781FE4B2BDA. Notice that these are listed multiple times. Each unique key will only need to be added once.)
