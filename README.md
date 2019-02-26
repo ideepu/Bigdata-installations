@@ -69,10 +69,26 @@ ZooKeeper is a centralized service for maintaining configuration information, na
 
 Apache Zookeeper installation script
 
+https://github.com/PradeepTammali/Bigdata-installations/blob/master/Apache%20Zookeeper/zookeeper-installation.sh
+
+Apache Zookeeper deamon script 
+
+https://github.com/PradeepTammali/Bigdata-installations/blob/master/Apache%20Zookeeper/zookeeper.sh
+
 # Apache Kafka
 Kafka is used for building real-time data pipelines and streaming apps. It is horizontally scalable, fault-tolerant, wicked fast, and runs in production in thousands of companies.
 
 Apache Kafka installation script 
+
+https://github.com/PradeepTammali/Bigdata-installations/blob/master/Apache%20Kafka/kafka-installation.sh
+
+Apache Kafka deamon script 
+
+https://github.com/PradeepTammali/Bigdata-installations/blob/master/Apache%20Kafka/kafka.sh
+
+Apache Kafka cluster setup steps 
+
+https://github.com/PradeepTammali/Bigdata-installations/blob/master/Apache%20Kafka/kafka_cluster.txt
 
 # Apache Hive 
 The Apache Hive data warehouse software facilitates reading, writing, and managing large datasets residing in distributed storage using SQL. Structure can be projected onto data already in storage. A command line tool and JDBC driver are provided to connect users to Hive.
