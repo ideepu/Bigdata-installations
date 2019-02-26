@@ -1,0 +1,169 @@
+kafka and zookeeper cluster setup installation steps:
+
+Prerequisites:
+
+1. Java (mininum version 1.7)
+2. Kafka and zookeeper binary files
+3. zookeeper version 3.4.10 (any required version )
+4. kafka version 1.1.0 (any required version)
+
+ports to be open:
+
+2888
+3888
+2181
+9092
+
+Installation steps:
+
+Step 1 : Install java 
+
+Step 2 : Installation of zookeeper:
+
+Do the following in all the three instances.
+
+Download the Zookeeper binaries on your all three instances and extract them. 
+
+You can download zookeeper of required version from the following link.
+
+wget http://www-eu.apache.org/dist/zookeeper/zookeeper-${ZOOKEEPER_VERSION}/zookeeper-${ZOOKEEPER_VERSION}.tar.gz
+
+Extract and place the folder in the installation directory( for example /opt can used as installation directory where the zookeeper folder can be placed).
+
+step 3: Install Kafka:
+
+Download the Kafka binaries on your all three instances and extract them.
+
+You can download kafka of required version from the following link.
+
+ wget http://www-us.apache.org/dist/kafka/${KAFKA_VERSION}/kafka_2.11-${KAFKA_VERSION}.tgz
+
+Extract and place the folder in the installation directory( for example /opt can used as installation directory where the kafka folder can be placed).
+
+ 
+ step 4: Update zookeeper properties:
+ 
+copy zoo_sample.cfg as zoo.cfg which is in zookeeper/conf directory.
+
+Update the zoo.cfg configuration file parameters as following.
+
+dataDir=/tmp/zookeeper
+
+clientPort=2181
+
+maxClientCnxns=200
+
+tickTime=2000
+
+server.1=x.x.x.x:2888:3888
+
+server.2=x.x.x.x:2888:3888
+
+server.3=x.x.x.x:2888:3888
+
+initLimit=20
+
+syncLimit=10
+
+-> The value of dataDir with the directory where you would like ZooKeeper to save its data and log respectively.
+-> clientPort property, as the name suggests, is for the clients to connect to ZooKeeper Service.
+-> x.x.x.x will be the IP of the each server.
+-> x in server.x denotes the id of node. Each server.x row must have unique id. Each server is assigned an id by creating a file named myid, one for each server, which resides in that server’s data directory, as specified by the configuration file parameter dataDir.
+
+step 5: Create myid file:
+
+Create myid file in the /tmp/zookeeper directory. Add Server ID for Respective Instances i.e. "server.1, server.2 and server.3"
+
+For example:
+server 1 myid file contains 1 that is id of the server 1
+
+in server 1
+echo "1" >> /tmp/zookeeper/myid 
+in server 2
+echo "2" >> /tmp/zookeeper/myid 
+in server 3
+echo "3" >> /tmp/zookeeper/myid 
+
+-> The ports, :2888:3888(Don’t change) that is at the end of the nodes. Zookeeper nodes will use these ports to connect the individual follower nodes to the leader nodes. The other port is used for leader election.
+-> And x.x.x.x is each node IP Address better to use private IP here. If you are trying to use public IP, current node IP should be replaced with 0.0.0.0 in each node.
+
+
+step 6: Update Kafka server properties:
+
+Update kafka server.properties file in all instances with below content. This file is located in ${installation_directory_path}/kafka/config/server.properties
+
+broker.id=1 (for server 2 broker.id=2, for server 3 broker.id=3)
+
+# With help of this we can consume outside of instance
+
+listeners=PLAINTEXT://x.x.x.x:9092 # x.x.x.x current node public IP or hostname
+
+advertised.listeners=PLAINTEXT://x.x.x.x:9092 # x.x.x.x current node public IP or hostname
+
+# Enter the zookeeper quorum details as below
+
+zookeeper.connect=x.x.x.x:2181,x.x.x.x:2181,x.x.x.x:2181
+
+# Add the following line at the end of the file. Topic Deletion is a feature of Kafka that allows for deleting topics.
+# Topic deletion is controlled by delete.topic.enable Kafka property that turns it on when true.
+
+delete.topic.enable=true
+
+
+-> The broker.id property is the unique and permanent name of each node in the cluster.
+-> advertised.host.name Hostname to publish to ZooKeeper for clients to use.
+-> zookeeper.connect Specifies the ZooKeeper connection string in the form hostname:port where host(better to use private IP of each node) and port are the host and port of a ZooKeeper server. The three IP address are the IP's of the each server in cluster.
+
+
+step 7: Update /etc/hosts file:
+
+Update the hosts file in all three nodes.
+
+127.0.0.1 hostname # server 1 localhost and hostname 
+x.x.x.x hostname  # server 2 IP and hostname
+x.x.x.x hostname  # server 3 IP and hostname
+
+
+step 8: Start the services:
+Before starting the Kafka service, start the zookeeper service using below command in all instances
+
+${installation_directory_path}/zookeeper/bin/zkServer.sh start
+
+Check the zookeeper status using below command. In these nodes, any of one zookeeper service will act as a leader remaining will be followers.
+
+${installation_directory_path}/zookeeper/bin/zkServer.sh status
+
+Start the kafka service using below command in all instances
+
+ ${installation_directory_path}/kafka/bin/kafka-server-start.sh -daemon ${installation_directory_path}/kafka/config/server.properties
+ 
+ 
+Step 9: Test the services from terminal:
+
+Create the topic using below command
+${installation_directory_path}/kafka/bin/kafka-topics.sh --create --zookeeper x.x.x.x:2181,x.x.x.x:2181,x.x.x.x:2181 --replication-factor 1 --partitions 1 --topic sample_test
+
+Get the list of topics using below command
+${installation_directory_path}/kafka/bin/kafka-topics.sh --list --zookeeper x.x.x.x:2181,x.x.x.x:2181,x.x.x.x:2181
+
+Consume the messages using below command
+${installation_directory_path}/kafka/bin/kafka-console-consumer.sh --zookeeper x.x.x.x:2181,x.x.x.x:2181,x.x.x.x:2181 --topic sample_test --from-beginning
+
+It will keep on listen, currently, there are messages in that topic
+Note: we have to use –zookeeper option with any one or list of clustered node IP address’s or domain’s while creating topics, listing topics and consuming message.
+
+Produce the messages using below command(open the new terminal and try it)
+
+${installation_directory_path}/kafka/bin/kafka-console-producer.sh --broker-list  x.x.x.x:9092,x.x.x.x:9092,x.x.x.x:9092 --topic sample_test
+
+It will keep on listen, type the message and hit the enter and now check in previous consumer terminal.
+It’s possible to test these operations from other systems(out of cluster nodes) if advertised.listeners property is configured by public IP in Kafka server properties.
+
+-> x.x.x.x are the ip address of the three nodes where zookeeper is installed.
+
+Step 10: 
+
+Configuring Zookeeper and kafka as a Service so that they can start on system startup.
+
+
+
